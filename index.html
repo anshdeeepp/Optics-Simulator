@@ -1,0 +1,504 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Fringe Playground</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout: optical-bench console. Left column stacks the screen strip over the intensity plot; right rail holds the controls; readouts, symbols, missing-order theory and formulas run underneath.
+   Colour: violet is the primary (labels, diffraction envelope, zeros, missing orders, slider fill). Black and white is the secondary (total pattern curve, bright-order dots, slider thumbs, checkboxes, body text). The spectrum colours only appear as content: the beam, the fringe fill and the wavelength track. */
+:root {
+  --bg: #0f1218;
+  --panel: #171b24;
+  --panel2: #1e2330;
+  --fg: #e7e9ef;
+  --muted: #9aa3b8;
+  --line: #2b3141;
+  --line-strong: #434d68;
+  --grid: #232938;
+  --violet: #8fa2ff;
+  --violet-text: #b3c0ff;
+  --violet-wash: rgba(143, 162, 255, 0.12);
+  --glow: rgba(143, 162, 255, 0.17);
+  --mono-fg: #ffffff;
+  --mono-bg: #000000;
+  --curve: #ffffff;
+  --r-lg: 14px;
+  --r-md: 10px;
+  --r-sm: 6px;
+  --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --f-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f5f8; --panel: #ffffff; --panel2: #eceef4; --fg: #151922; --muted: #596277;
+    --line: #d5d9e4; --line-strong: #b4bcd1; --grid: #e4e7ef;
+    --violet: #4458dc; --violet-text: #3347c8; --violet-wash: rgba(68, 88, 220, 0.07); --glow: rgba(68, 88, 220, 0.10);
+    --mono-fg: #000000; --mono-bg: #ffffff; --curve: #151922; color-scheme: light;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f4f5f8; --panel: #ffffff; --panel2: #eceef4; --fg: #151922; --muted: #596277;
+  --line: #d5d9e4; --line-strong: #b4bcd1; --grid: #e4e7ef;
+  --violet: #4458dc; --violet-text: #3347c8; --violet-wash: rgba(68, 88, 220, 0.07); --glow: rgba(68, 88, 220, 0.10);
+  --mono-fg: #000000; --mono-bg: #ffffff; --curve: #151922; color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  background-color: var(--bg);
+  background-image: radial-gradient(900px 420px at 50% -140px, var(--glow), transparent 70%);
+  background-repeat: no-repeat;
+  background-size: 100% 560px;
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-block: 26px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--violet-text); font-weight: 500; margin: 0 0 10px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); letter-spacing: -0.025em; line-height: 1.05; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 18px; margin: 0 0 10px; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { margin: 10px 0 0; color: var(--muted); max-width: 62ch; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 20px; min-width: 0; box-shadow: inset 0 1px 0 var(--violet-wash); }
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 16px; align-items: start; }
+@media (max-width: 880px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+
+.cap, .group-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--violet-text); font-weight: 500; }
+.cap { margin: 0 0 8px 44px; }
+.group-label { margin: 0 0 12px; }
+.plotcap { margin-top: 18px; }
+#strip { display: block; width: calc(100% - 58px); margin-left: 44px; height: 92px; background: #000; border: 1px solid var(--line-strong); border-radius: var(--r-sm); transition: box-shadow 0.2s; }
+#plot { display: block; width: 100%; height: 280px; }
+
+.legend { list-style: none; margin: 12px 0 0 44px; padding: 12px 0 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.sw-env { width: 20px; border-top: 2px dashed var(--violet); }
+.sw-cur { width: 20px; border-top: 2px solid var(--curve); }
+.sw-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--curve); }
+.sw-hol { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--violet); }
+.sw-zero { width: 0; height: 12px; border-left: 2px dotted var(--violet); }
+
+.rail { display: flex; flex-direction: column; gap: 20px; }
+.rail > div + div { border-top: 1px solid var(--line); padding-top: 20px; }
+.controls { display: flex; flex-direction: column; gap: 16px; }
+.ctl { display: grid; grid-template-columns: 1fr auto; align-items: baseline; row-gap: 6px; }
+.ctl label { font-weight: 500; }
+.ctl output { font-family: var(--f-mono); font-size: 13px; color: var(--violet-text); font-variant-numeric: tabular-nums; }
+.ctl input { grid-column: 1 / -1; }
+
+input[type=range] { --pct: 50%; -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 0; }
+input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, var(--violet) var(--pct), var(--line) var(--pct)); }
+input[type=range]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
+input[type=range]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--violet); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--mono-fg); border: 4px solid var(--mono-bg); box-shadow: 0 0 0 1px var(--line-strong), 0 2px 6px rgba(0, 0, 0, 0.35); margin-top: -7px; }
+input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--mono-fg); border: 4px solid var(--mono-bg); box-shadow: 0 0 0 1px var(--line-strong), 0 2px 6px rgba(0, 0, 0, 0.35); }
+input[type=range]:focus-visible { outline: 2px solid var(--violet-text); outline-offset: 4px; border-radius: 6px; }
+#lam::-webkit-slider-runnable-track { background: linear-gradient(90deg, #6b00d6, #2f3cff, #00b7ff, #00e08a, #7cff00, #ffe400, #ff8a00, #ff1a00, #7a0000); }
+#lam::-moz-range-track { background: linear-gradient(90deg, #6b00d6, #2f3cff, #00b7ff, #00e08a, #7cff00, #ffe400, #ff8a00, #ff1a00, #7a0000); }
+#lam::-moz-range-progress { background: transparent; }
+
+.checks { display: flex; flex-direction: column; gap: 10px; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; cursor: pointer; }
+.check input { width: 17px; height: 17px; accent-color: var(--mono-fg); }
+.check input:focus-visible { outline: 2px solid var(--violet-text); outline-offset: 2px; }
+
+.reads { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; min-width: 0; }
+.tile .k { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--violet-text); font-weight: 500; }
+.tile .v { font-family: var(--f-mono); font-size: 25px; font-weight: 500; margin: 6px 0 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile .s { font-size: 13px; color: var(--muted); }
+
+.eq { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 16px; margin: 12px 0; font-size: 17px; overflow-x: auto; white-space: nowrap; }
+.eq i { font-style: italic; }
+.eq-note { font-size: 14px; color: var(--muted); margin: 0; }
+.panel p { margin: 0 0 10px; }
+.panel p:last-child { margin-bottom: 0; }
+.soft { color: var(--muted); font-size: 14px; }
+.panel ol, .panel ul { margin: 0 0 10px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.panel li::marker { color: var(--violet-text); }
+
+.full { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; }
+@media (max-width: 780px) { .full { grid-template-columns: minmax(0, 1fr); } }
+.live { background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; align-self: start; }
+.live .group-label { margin-bottom: 10px; }
+.rows { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; font-family: var(--f-mono); font-size: 13.5px; }
+.rows .row { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 5px; }
+
+.lead { margin-top: 10px; }
+.gl-h { margin-top: 20px; }
+.gloss { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 0 28px; margin: 0; }
+.gloss > div { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 10px; align-items: baseline; border-top: 1px solid var(--line); padding: 8px 0; }
+.gloss dt { font-size: 17px; color: var(--violet-text); }
+.gloss dd { margin: 0; font-size: 14.5px; }
+.frows { display: flex; flex-direction: column; }
+.frow { display: grid; grid-template-columns: minmax(150px, 230px) minmax(0, 1fr); gap: 4px 20px; align-items: baseline; border-top: 1px solid var(--line); padding: 8px 0; font-size: 14.5px; }
+.fx { font-size: 16.5px; overflow-x: auto; white-space: nowrap; }
+@media (max-width: 640px) { .frow { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Physics-I · Physical Optics</p>
+    <h1>Fringe Playground</h1>
+    <p class="sub">Slide the controls and watch one slit's diffraction hump and the interference stripes of several slits combine into a single pattern.</p>
+  </header>
+
+  <main class="bench">
+    <section class="panel" aria-label="Pattern on the screen">
+      <div class="cap">Screen</div>
+      <canvas id="strip" role="img" aria-label="Fringe pattern on the screen"></canvas>
+      <div class="cap plotcap">Intensity</div>
+      <canvas id="plot" role="img" aria-label="Intensity graph"></canvas>
+      <ul class="legend">
+        <li><span class="sw-env"></span>Diffraction envelope</li>
+        <li><span class="sw-cur"></span>Pattern on the screen</li>
+        <li><span class="sw-dot"></span>Bright order m</li>
+        <li><span class="sw-hol"></span>Missing order</li>
+        <li><span class="sw-zero"></span>Diffraction zero n</li>
+      </ul>
+    </section>
+
+    <aside class="panel rail" aria-label="Controls">
+      <div>
+        <p class="group-label">Light and slits</p>
+        <div class="controls">
+          <div class="ctl"><label for="lam">Wavelength λ</label><output id="lamv" for="lam"></output><input id="lam" type="range" min="400" max="700" step="5" value="550"></div>
+          <div class="ctl"><label for="a">Slit width a</label><output id="av" for="a"></output><input id="a" type="range" min="0.02" max="0.30" step="0.005" value="0.10"></div>
+          <div class="ctl"><label for="d">Slit spacing d</label><output id="dv" for="d"></output><input id="d" type="range" min="0.10" max="1.00" step="0.01" value="0.40"></div>
+          <div class="ctl"><label for="N">Number of slits N</label><output id="Nv" for="N"></output><input id="N" type="range" min="1" max="8" step="1" value="2"></div>
+        </div>
+      </div>
+
+      <div>
+        <p class="group-label">Screen</p>
+        <div class="controls">
+          <div class="ctl"><label for="D">Screen distance D</label><output id="Dv" for="D"></output><input id="D" type="range" min="0.5" max="3" step="0.05" value="1"></div>
+          <div class="ctl"><label for="win">Screen window</label><output id="winv" for="win"></output><input id="win" type="range" min="2" max="30" step="1" value="10"></div>
+        </div>
+      </div>
+
+      <div class="checks">
+        <label class="check" for="ord"><input id="ord" type="checkbox" checked> Mark bright orders</label>
+        <label class="check" for="zer"><input id="zer" type="checkbox" checked> Mark diffraction zeros</label>
+      </div>
+    </aside>
+  </main>
+
+  <section class="reads" aria-label="Readouts">
+    <div class="tile"><div class="k">Fringe width β</div><div class="v" id="r1"></div><div class="s" id="s1"></div></div>
+    <div class="tile"><div class="k">Principal fringe width</div><div class="v" id="r2"></div><div class="s" id="s2"></div></div>
+    <div class="tile"><div class="k">Secondary fringe width</div><div class="v" id="r3"></div><div class="s" id="s3"></div></div>
+    <div class="tile"><div class="k">Missing orders</div><div class="v" id="r4"></div><div class="s" id="s4"></div></div>
+  </section>
+
+  <section class="panel" aria-label="The full pattern">
+    <h2>The full pattern</h2>
+    <p class="eq"><i>I</i>(θ) = <i>I</i><sub>0</sub> · (sin <i>α</i> / <i>α</i>)<sup>2</sup> · (sin <i>Nγ</i> / <i>N</i> sin <i>γ</i>)<sup>2</sup></p>
+    <p class="eq-note"><i>α</i> = π <i>a</i> sin θ / λ &nbsp;&nbsp;&nbsp; <i>γ</i> = π <i>d</i> sin θ / λ</p>
+    <p class="lead">The first factor is the hump, set by the width of one slit. The second is the stripes, set by the slit spacing and the number of slits. They multiply, so the stripes sit inside the hump.</p>
+    <h2 class="gl-h">What each symbol means</h2>
+    <dl class="gloss">
+      <div><dt>λ</dt><dd>Wavelength of the light. This is the colour, 400 to 700 nm for visible light.</dd></div>
+      <div><dt><i>a</i></dt><dd>Width of each slit.</dd></div>
+      <div><dt><i>d</i></dt><dd>Distance between the centres of neighbouring slits. It is never smaller than <i>a</i>.</dd></div>
+      <div><dt><i>N</i></dt><dd>Number of slits. 1 is a single slit, 2 is a double slit.</dd></div>
+      <div><dt><i>D</i></dt><dd>Distance from the slits to the screen.</dd></div>
+      <div><dt>θ</dt><dd>Angle between straight ahead and the direction to a point on the screen.</dd></div>
+      <div><dt><i>x</i></dt><dd>Position on the screen, measured from the centre. For small angles <i>x</i> ≈ <i>D</i>θ.</dd></div>
+      <div><dt><i>α</i></dt><dd>Phase term from the slit width, π<i>a</i> sin θ / λ. It shapes the hump.</dd></div>
+      <div><dt><i>γ</i></dt><dd>Phase term from the slit spacing, π<i>d</i> sin θ / λ. It shapes the stripes.</dd></div>
+      <div><dt><i>I</i></dt><dd>Intensity (brightness) at angle θ.</dd></div>
+      <div><dt><i>I</i><sub>0</sub></dt><dd>Intensity at the centre of the pattern. It is set to 1 on the plot.</dd></div>
+      <div><dt><i>m</i></dt><dd>Order of a bright fringe. 0 is the centre, then ±1, ±2 and so on.</dd></div>
+      <div><dt><i>n</i></dt><dd>Number of a dark zero of the single-slit pattern: ±1, ±2 and so on.</dd></div>
+    </dl>
+  </section>
+
+  <section class="panel full" aria-label="Missing orders">
+    <div>
+      <h2>Missing orders</h2>
+      <p>A bright fringe can fail to appear when it lands on a dark zero of the single-slit pattern.</p>
+      <ol>
+        <li>Bright fringes sit where <i>d</i> sin θ = <i>m</i>λ.</li>
+        <li>Dark zeros sit where <i>a</i> sin θ = <i>n</i>λ.</li>
+        <li>If both happen at the same angle, <i>d</i> / <i>a</i> = <i>m</i> / <i>n</i>, so <i>m</i> = <i>n</i> · (<i>d</i> / <i>a</i>).</li>
+      </ol>
+      <p class="soft">At that angle each slit sends no light, so there is nothing for the slits to add together.</p>
+    </div>
+    <div class="live" aria-live="polite">
+      <p class="group-label">With your current settings</p>
+      <p id="mo-now"></p>
+      <div class="rows" id="mo-rows"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Other formulas">
+    <h2>Other formulas on this page</h2>
+    <div class="frows">
+      <div class="frow"><div class="fx"><i>a</i> sin θ = <i>n</i>λ</div><div>Dark zeros of one slit.</div></div>
+      <div class="frow"><div class="fx">2λ<i>D</i> / <i>a</i></div><div>Principal fringe width, the central bright band of the diffraction pattern.</div></div>
+      <div class="frow"><div class="fx">λ<i>D</i> / <i>a</i></div><div>Secondary fringe width, each side band of the diffraction pattern. It is half the principal width.</div></div>
+      <div class="frow"><div class="fx"><i>d</i> sin θ = <i>m</i>λ</div><div>Bright fringes of the slits.</div></div>
+      <div class="frow"><div class="fx"><i>d</i> sin θ = (<i>m</i> + ½)λ</div><div>Dark fringes, halfway between the bright ones.</div></div>
+      <div class="frow"><div class="fx"><i>β</i> = λ<i>D</i> / <i>d</i></div><div>Fringe width <i>β</i>, the distance between neighbouring bright fringes.</div></div>
+      <div class="frow"><div class="fx"><i>N</i> − 2</div><div>Number of weak extra maxima between two neighbouring bright orders when there are <i>N</i> slits.</div></div>
+      <div class="frow"><div class="fx"><i>R</i> = λ / Δλ = <i>mN</i></div><div>Resolving power of a grating. Δλ is the smallest wavelength difference it can separate, and <i>m</i> is the order used.</div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var S = { lam: 550, a: 0.10, d: 0.40, D: 1.0, N: 2, win: 10, orders: true, zeros: true };
+  var PADL = 44, PADR = 14;
+  var FONT = '11px "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace';
+  var el = function (id) { return document.getElementById(id); };
+  var strip = el('strip'), plot = el('plot');
+
+  function css(v) { return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+  function fmt(v) { return v < 1 ? v.toFixed(3) : v.toFixed(2); }
+
+  function wl2rgb(w) {
+    var r = 0, g = 0, b = 0;
+    if (w < 440) { r = -(w - 440) / 60; b = 1; }
+    else if (w < 490) { g = (w - 440) / 50; b = 1; }
+    else if (w < 510) { g = 1; b = -(w - 510) / 20; }
+    else if (w < 580) { r = (w - 510) / 70; g = 1; }
+    else if (w < 645) { r = 1; g = -(w - 645) / 65; }
+    else { r = 1; }
+    var f = w < 420 ? 0.3 + 0.7 * (w - 380) / 40 : (w > 700 ? 0.3 + 0.7 * (780 - w) / 80 : 1);
+    return [r, g, b].map(function (c) { return Math.round(255 * Math.pow(c * f, 0.8)); });
+  }
+
+  // x in mm on the screen -> intensity parts, normalised so the centre is 1
+  function I(x) {
+    var Dmm = S.D * 1000, s = x / Math.hypot(x, Dmm), lam = S.lam * 1e-6;
+    var al = Math.PI * S.a * s / lam, ga = Math.PI * S.d * s / lam;
+    var env = Math.abs(al) < 1e-9 ? 1 : Math.pow(Math.sin(al) / al, 2);
+    var g = 1;
+    if (S.N > 1) {
+      var sg = Math.sin(ga);
+      g = Math.abs(sg) < 1e-9 ? 1 : Math.pow(Math.sin(S.N * ga) / (S.N * sg), 2);
+    }
+    return { env: env, g: g, i: env * g };
+  }
+
+  function isMissing(m) {
+    m = Math.abs(m);
+    if (!m) return false;
+    var r = m * S.a / S.d, n = Math.round(r);
+    return n >= 1 && Math.abs(r - n) < 1e-6;
+  }
+  function firstMissing() {
+    for (var m = 1; m <= 60; m++) if (isMissing(m)) return m;
+    return 0;
+  }
+
+  function niceStep(raw) {
+    var p = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / p;
+    return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * p;
+  }
+
+  function setup(c) {
+    var dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    var ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, w: w, h: h };
+  }
+
+  function drawStrip() {
+    var o = setup(strip), ctx = o.ctx, w = o.w, h = o.h;
+    var c = wl2rgb(S.lam);
+    strip.style.boxShadow = '0 0 48px rgba(' + c.join(',') + ',0.22)';
+    for (var px = 0; px < w; px++) {
+      var x = (px / (w - 1) * 2 - 1) * S.win;
+      var v = Math.pow(Math.min(1, I(x).i), 0.5);
+      ctx.fillStyle = 'rgb(' + ((c[0] * v) | 0) + ',' + ((c[1] * v) | 0) + ',' + ((c[2] * v) | 0) + ')';
+      ctx.fillRect(px, 0, 1, h);
+    }
+    var gr = ctx.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.3, 'rgba(0,0,0,0)');
+    gr.addColorStop(0.7, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = gr; ctx.fillRect(0, 0, w, h);
+  }
+
+  function drawPlot() {
+    var o = setup(plot), ctx = o.ctx, w = o.w, h = o.h;
+    var T = 20, B = 36, L = PADL, R = PADR, pw = w - L - R, ph = h - T - B;
+    var X = function (x) { return L + (x + S.win) / (2 * S.win) * pw; };
+    var Y = function (v) { return T + (1 - v) * ph; };
+    var cMuted = css('--muted'), cGrid = css('--grid'), cLine = css('--line-strong'), cCurve = css('--curve'), cEnv = css('--violet'), cPanel = css('--panel');
+    var c = wl2rgb(S.lam);
+    var lam = S.lam * 1e-6, Dmm = S.D * 1000;
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = FONT; ctx.textBaseline = 'middle';
+
+    [0, 0.5, 1].forEach(function (v) {
+      ctx.strokeStyle = v === 0 ? cLine : cGrid; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(w - R, Y(v)); ctx.stroke();
+      ctx.fillStyle = cMuted; ctx.textAlign = 'right'; ctx.fillText(v.toFixed(1), L - 8, Y(v));
+    });
+    var step = niceStep(2 * S.win / 8);
+    ctx.textAlign = 'center';
+    for (var k = Math.ceil(-S.win / step); k * step <= S.win + 1e-9; k++) {
+      var t = k * step, xp = X(t);
+      ctx.strokeStyle = cGrid; ctx.beginPath(); ctx.moveTo(xp, T); ctx.lineTo(xp, T + ph); ctx.stroke();
+      ctx.fillStyle = cMuted;
+      ctx.fillText(Math.abs(t) < 1e-9 ? '0' : (step < 1 ? t.toFixed(1) : String(t)), xp, T + ph + 14);
+    }
+    ctx.textAlign = 'right'; ctx.fillStyle = cMuted; ctx.fillText('position on screen, mm', w - R, h - 7);
+
+    // diffraction zeros: a sin(theta) = n lambda
+    if (S.zeros) {
+      var zw = lam * Dmm / S.a, pxZ = zw / (2 * S.win) * pw;
+      if (pxZ >= 6) {
+        var everyZ = Math.max(1, Math.ceil(20 / pxZ));
+        var NZ = Math.floor(S.win / zw) + 1;
+        ctx.save(); ctx.textAlign = 'center';
+        for (var n = -NZ; n <= NZ; n++) {
+          if (!n) continue;
+          var sz = n * lam / S.a;
+          if (Math.abs(sz) >= 1) continue;
+          var xz = Dmm * sz / Math.sqrt(1 - sz * sz);
+          if (Math.abs(xz) > S.win) continue;
+          var xzp = X(xz);
+          ctx.strokeStyle = cEnv; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]);
+          ctx.beginPath(); ctx.moveTo(xzp, T); ctx.lineTo(xzp, T + ph); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 1;
+          if (n % everyZ === 0) { ctx.fillStyle = cEnv; ctx.fillText(String(n), xzp, 9); }
+        }
+        ctx.restore();
+      }
+    }
+
+    var np = Math.max(2, Math.floor(pw * 1.5)), pts = [];
+    for (var i = 0; i <= np; i++) { var x = -S.win + 2 * S.win * i / np; pts.push([X(x), I(x)]); }
+
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = cEnv; ctx.lineWidth = 1.5; ctx.beginPath();
+    pts.forEach(function (p, j) { var y = Y(p[1].env); if (j) ctx.lineTo(p[0], y); else ctx.moveTo(p[0], y); });
+    ctx.stroke(); ctx.setLineDash([]);
+
+    ctx.beginPath(); ctx.moveTo(pts[0][0], Y(0));
+    pts.forEach(function (p) { ctx.lineTo(p[0], Y(p[1].i)); });
+    ctx.lineTo(pts[np][0], Y(0)); ctx.closePath();
+    var gf = ctx.createLinearGradient(0, T, 0, T + ph);
+    gf.addColorStop(0, 'rgba(' + c.join(',') + ',0.55)'); gf.addColorStop(1, 'rgba(' + c.join(',') + ',0.10)');
+    ctx.fillStyle = gf; ctx.fill();
+    ctx.strokeStyle = cCurve; ctx.lineWidth = 1.6; ctx.beginPath();
+    pts.forEach(function (p, j) { var y = Y(p[1].i); if (j) ctx.lineTo(p[0], y); else ctx.moveTo(p[0], y); });
+    ctx.stroke();
+
+    if (S.N > 1 && S.orders) {
+      var sp = lam * Dmm / S.d, pxSp = sp / (2 * S.win) * pw;
+      if (pxSp >= 8) {
+        var every = Math.max(1, Math.ceil(28 / pxSp));
+        var M = Math.floor(S.win / sp) + 1;
+        ctx.textAlign = 'center';
+        for (var m = -M; m <= M; m++) {
+          var s = m * lam / S.d;
+          if (Math.abs(s) >= 1) continue;
+          var xm = Dmm * s / Math.sqrt(1 - s * s);
+          if (Math.abs(xm) > S.win) continue;
+          var e = I(xm).env, xq = X(xm), miss = isMissing(m), yy = miss ? Y(0) : Y(e);
+          ctx.beginPath(); ctx.arc(xq, yy, miss ? 4.5 : 3.5, 0, Math.PI * 2);
+          if (miss) { ctx.fillStyle = cPanel; ctx.fill(); ctx.strokeStyle = cEnv; ctx.lineWidth = 2; ctx.stroke(); }
+          else { ctx.fillStyle = cCurve; ctx.fill(); }
+          if (m % every === 0) { ctx.fillStyle = miss ? cEnv : cMuted; ctx.fillText(String(m), xq, yy - 11); }
+        }
+      }
+    }
+  }
+
+  function updateReadouts() {
+    var lam = S.lam * 1e-6, Dmm = S.D * 1000;
+    var principal = 2 * lam * Dmm / S.a, secondary = lam * Dmm / S.a;
+    el('r2').textContent = fmt(principal) + ' mm';
+    el('s2').textContent = '2λD / a, the central diffraction maximum';
+    el('r3').textContent = fmt(secondary) + ' mm';
+    el('s3').textContent = 'λD / a, each side diffraction maximum';
+    if (S.N === 1) {
+      el('r1').textContent = '—'; el('s1').textContent = 'one slit makes no interference fringes';
+      el('r4').textContent = '—'; el('s4').textContent = 'needs at least two slits';
+      return;
+    }
+    el('r1').textContent = fmt(lam * Dmm / S.d) + ' mm';
+    el('s1').textContent = 'β = λD / d, between neighbouring bright fringes';
+    var m = firstMissing();
+    if (m) {
+      var n = Math.round(m * S.a / S.d);
+      el('r4').textContent = '±' + m + (m * 2 <= 60 ? ', ±' + (m * 2) : '') + '…';
+      el('s4').textContent = 'order ' + m + ' lands on diffraction zero ' + n;
+    } else {
+      el('r4').textContent = 'none';
+      el('s4').textContent = 'no order meets a diffraction zero';
+    }
+  }
+
+  function updateMissingLive() {
+    var now = el('mo-now'), rows = el('mo-rows');
+    rows.innerHTML = '';
+    if (S.N === 1) { now.textContent = 'Missing orders need at least two slits. Raise N to 2 or more.'; return; }
+    var m = firstMissing(), ratio = S.d / S.a;
+    if (!m) {
+      now.textContent = 'd / a = ' + ratio.toFixed(3) + '. That is not a ratio of small whole numbers, so no bright order meets a diffraction zero and every order shows. Make d a whole-number multiple of a to see orders disappear.';
+      return;
+    }
+    var n = Math.round(m * S.a / S.d);
+    var rt = n === 1 ? String(m) : m + ' / ' + n + ' (' + ratio.toFixed(2) + ')';
+    now.textContent = 'd / a = ' + rt + '. Diffraction zero n = ' + n + ' lands exactly on bright order m = ' + m + ', and the same thing repeats at every multiple of that pair.';
+    var html = '';
+    for (var k = 1; k <= 3; k++) html += '<div class="row"><span>zero n = ' + (k * n) + '</span><span>hides order m = ±' + (k * m) + '</span></div>';
+    rows.innerHTML = html;
+  }
+
+  function syncUI() {
+    el('lam').value = S.lam; el('a').value = S.a; el('d').value = S.d; el('D').value = S.D; el('N').value = S.N; el('win').value = S.win;
+    el('lamv').textContent = S.lam + ' nm';
+    el('av').textContent = S.a.toFixed(3) + ' mm';
+    el('dv').textContent = S.d.toFixed(2) + ' mm';
+    el('Dv').textContent = S.D.toFixed(2) + ' m';
+    el('winv').textContent = '±' + S.win + ' mm';
+    el('Nv').textContent = S.N + (S.N === 1 ? ' (single slit)' : S.N === 2 ? ' (double slit)' : ' slits');
+    el('ord').checked = S.orders; el('zer').checked = S.zeros;
+    ['a', 'd', 'D', 'N', 'win'].forEach(function (k) {
+      var s = el(k); s.style.setProperty('--pct', ((s.value - s.min) / (s.max - s.min) * 100) + '%');
+    });
+  }
+
+  function draw() {
+    updateReadouts();
+    updateMissingLive();
+    drawStrip();
+    drawPlot();
+    plot.setAttribute('aria-label', 'Intensity graph for ' + S.N + (S.N === 1 ? ' slit' : ' slits') + ', wavelength ' + S.lam + ' nanometres, slit width ' + S.a + ' millimetres, spacing ' + S.d.toFixed(2) + ' millimetres, screen at ' + S.D.toFixed(2) + ' metres');
+  }
+
+  ['lam', 'a', 'd', 'D', 'N', 'win'].forEach(function (k) {
+    el(k).addEventListener('input', function (e) {
+      S[k] = parseFloat(e.target.value);
+      if (S.d < S.a) S.d = S.a;
+      syncUI(); draw();
+    });
+  });
+  el('ord').addEventListener('change', function (e) { S.orders = e.target.checked; draw(); });
+  el('zer').addEventListener('change', function (e) { S.zeros = e.target.checked; draw(); });
+
+  if (window.ResizeObserver) new ResizeObserver(function () { draw(); }).observe(plot.parentElement);
+  else window.addEventListener('resize', draw);
+  try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw); } catch (e) {}
+  try { new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+  syncUI(); draw();
+})();
+</script>
+
+</body></html>
